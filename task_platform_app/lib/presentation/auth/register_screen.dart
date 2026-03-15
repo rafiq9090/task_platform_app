@@ -15,6 +15,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String _selectedRole = 'developer';
+  bool _obscurePassword = true;
+  String? _validatePassword(String value) {
+    if (value == null || value.isEmpty) return 'Password is required';
+
+    final regex = RegExp(
+      r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$',
+    );
+    if (!regex.hasMatch(value)) {
+      return 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character';
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,22 +41,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
           children: [
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Full Name', prefixIcon: Icon(Icons.person_outline)),
+              decoration: const InputDecoration(
+                labelText: 'Full Name',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
             ),
             const SizedBox(height: 20),
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email Address', prefixIcon: Icon(Icons.email_outlined)),
+              decoration: const InputDecoration(
+                labelText: 'Email Address',
+                prefixIcon: Icon(Icons.email_outlined),
+              ),
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 20),
             TextField(
               controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock_outline)),
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                labelText: 'Password',
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
             ),
             const SizedBox(height: 24),
-            const Text('I am a:', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'I am a:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -59,12 +90,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
             if (authProvider.error != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: Text(authProvider.error!, style: const TextStyle(color: Colors.red)),
+                child: Text(
+                  authProvider.error!,
+                  style: const TextStyle(color: Colors.red),
+                ),
               ),
             ElevatedButton(
               onPressed: authProvider.isLoading
                   ? null
                   : () async {
+                      final passwordError = _validatePassword(
+                        _passwordController.text,
+                      );
+                      if (passwordError != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(passwordError),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
                       final success = await authProvider.register(
                         name: _nameController.text,
                         email: _emailController.text,
@@ -73,13 +119,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       );
                       if (success && mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Account created! Please login.')),
+                          const SnackBar(
+                            content: Text('Account created! Please login.'),
+                          ),
                         );
                         context.pop();
                       }
                     },
               child: authProvider.isLoading
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
                   : const Text('Register'),
             ),
           ],

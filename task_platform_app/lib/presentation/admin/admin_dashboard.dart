@@ -63,8 +63,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         ),
                         _buildStatCard(
                           'Total Tasks',
-                          adminProvider.stats?.summary.totalTasks
-                                  .toString() ??
+                          adminProvider.stats?.summary.totalTasks.toString() ??
                               '0',
                           Icons.task,
                           Colors.orange,
@@ -182,7 +181,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
             const SizedBox(height: 12),
             _buildFinancialRow(
-              'Projected Rev',
+              'Projected Revenue',
               format.format(stats?.potentialTotalRevenue ?? 0),
               Colors.white70,
             ),
