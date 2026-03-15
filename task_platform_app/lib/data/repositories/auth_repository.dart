@@ -43,8 +43,11 @@ class AuthRepository {
   Future<List<UserModel>> getAllUsers() async {
     try {
       final response = await _apiClient.get(Endpoints.allUsers);
+      print('AuthRepository: GET all-users response status: ${response.statusCode}');
+      print('AuthRepository: Raw data: ${response.data}');
       return (response.data as List).map((u) => UserModel.fromJson(u)).toList();
     } catch (e) {
+      print('AuthRepository: GET all-users failed: $e');
       rethrow;
     }
   }

@@ -29,6 +29,11 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     final adminProvider = context.watch<AdminProvider>();
     final taskProvider = context.watch<TaskProvider>();
     final projectId = widget.project is int ? widget.project : (widget.project as dynamic).id;
+    
+    print('CreateTaskScreen: Building with ${adminProvider.developers.length} developers');
+    for (var d in adminProvider.developers) {
+      print('  - Developer: "${d.name}" (ID: ${d.id}, Role: ${d.role})');
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Create New Task')),
@@ -57,31 +62,83 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
             const Text('Assign to Developer:', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             if (adminProvider.isLoading)
-              const CircularProgressIndicator()
+              const Center(
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 8),
+                    Text('Fetching developers...'),
+                  ],
+                ),
+              )
+            else if (adminProvider.error != null)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Error: ${adminProvider.error!}', style: const TextStyle(color: Colors.red)),
+                  TextButton(
+                    onPressed: () => adminProvider.fetchUsers(),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              )
+            else if (adminProvider.developers.isEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'No developers found in the system.',
+                    style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'To show up here, a user must be registered with the role "developer".',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  TextButton(
+                    onPressed: () => adminProvider.fetchUsers(),
+                    child: const Text('Refresh List'),
+                  ),
+                ],
+              )
             else
               DropdownButtonFormField<UserModel>(
                 value: _selectedDeveloper,
+                isExpanded: true,
                 items: adminProvider.developers.map((dev) {
-                  return DropdownMenuItem(value: dev, child: Text(dev.name));
+                  return DropdownMenuItem(
+                    value: dev,
+                    child: Text('${dev.name} (${dev.email})'),
+                  );
                 }).toList(),
                 onChanged: (val) => setState(() => _selectedDeveloper = val),
-                decoration: const InputDecoration(hintText: 'Select a developer'),
+                decoration: const InputDecoration(
+                  hintText: 'Select a developer',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
               ),
             const SizedBox(height: 48),
-            ElevatedButton(
-              onPressed: taskProvider.isLoading || _selectedDeveloper == null
-                  ? null
-                  : () async {
-                      final success = await taskProvider.createTask(
-                        title: _titleController.text,
-                        description: _descController.text,
-                        developerId: _selectedDeveloper!.id!,
-                        hourlyRate: double.parse(_rateController.text),
-                        projectId: projectId,
-                      );
-                      if (success && mounted) Navigator.pop(context);
-                    },
-              child: const Text('Assign Task'),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: taskProvider.isLoading || _selectedDeveloper == null
+                    ? null
+                    : () async {
+                        final success = await taskProvider.createTask(
+                          title: _titleController.text,
+                          description: _descController.text,
+                          developerId: _selectedDeveloper!.id!,
+                          hourlyRate: double.parse(_rateController.text),
+                          projectId: projectId,
+                        );
+                        if (success && mounted) Navigator.pop(context);
+                      },
+                child: taskProvider.isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Assign Task'),
+              ),
             ),
           ],
         ),
